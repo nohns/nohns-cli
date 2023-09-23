@@ -153,6 +153,8 @@ func (nvf *nginxVhostFactory) createRevProxy(conf *nginxRevProxyConf) error {
 // Creates a new PHP nginx vhost in the nginx sites-available directory
 func (nvf *nginxVhostFactory) createPHPHost(conf *nginxVhostConf) error {
 	conf.Body = `
+	index index.html index.htm index.php;
+	
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
