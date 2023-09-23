@@ -59,7 +59,7 @@ func Nginx(nvf *nginxVhostFactory) []*cli.Command {
 						hostname := c.Args().Get(0)
 
 						// If no directory is specified, use the hostname as the directory
-						rootDir := hostname
+						rootDir := filepath.Join(nginxWWWDir, hostname)
 						if c.IsSet(c.String(nginxPhpFlagDir)) {
 							rootDir = c.String(nginxPhpFlagDir)
 						}
@@ -76,14 +76,12 @@ func Nginx(nvf *nginxVhostFactory) []*cli.Command {
 						}
 
 						// Create directory if it doesn't exist
-						wwwfp := filepath.Join(nginxWWWDir, rootDir)
-						if err := os.Mkdir(wwwfp, 0755); err != nil && !errors.Is(err, os.ErrExist) {
-							return fmt.Errorf("could not create www root directory %s: %s", wwwfp, err)
+						if err := os.Mkdir(rootDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
+							return fmt.Errorf("could not create www root directory %s: %s", rootDir, err)
 						}
-
 						// Set www directory permissions
-						if err := os.Chmod(wwwfp, 0755); err != nil {
-							return fmt.Errorf("could not set permissions on www root directory %s: %s", wwwfp, err)
+						if err := os.Chmod(rootDir, 0755); err != nil {
+							return fmt.Errorf("could not set permissions on www root directory %s: %s", rootDir, err)
 						}
 						// Set www directory owner
 						uid, err := strconv.Atoi(os.Getenv("SUDO_UID"))
@@ -94,8 +92,8 @@ func Nginx(nvf *nginxVhostFactory) []*cli.Command {
 						if err != nil {
 							return fmt.Errorf("could not get SUDO_GID: %s", err)
 						}
-						if err := os.Chown(wwwfp, uid, gid); err != nil {
-							return fmt.Errorf("could not set owner '%s' on www root directory %s: %s", os.Getenv("SUDO_USER"), wwwfp, err)
+						if err := os.Chown(rootDir, uid, gid); err != nil {
+							return fmt.Errorf("could not set owner '%s' on www root directory %s: %s", os.Getenv("SUDO_USER"), rootDir, err)
 						}
 
 						// Ask user if they want to enable the vhost
