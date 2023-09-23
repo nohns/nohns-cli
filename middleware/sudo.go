@@ -1,4 +1,4 @@
-package subcmd
+package middleware
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func AssertSudo(f cli.ActionFunc) cli.ActionFunc {
+func RequireSudo(f cli.ActionFunc) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		if os.Geteuid() != 0 {
 			return fmt.Errorf("this command requires sudo.")

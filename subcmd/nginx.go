@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/manifoldco/promptui"
+	"github.com/nohns/nohns-cli/middleware"
 	"github.com/urfave/cli/v2"
 )
 
@@ -25,11 +26,11 @@ const (
 	nginxPhpFlagDir       = "dir"
 )
 
-func NginxSubcommands(nvf *nginxVhostFactory) []*cli.Command {
+func Nginx(nvf *nginxVhostFactory) []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "vhost",
-			Before: cli.BeforeFunc(AssertSudo(nil)),
+			Before: cli.BeforeFunc(middleware.RequireSudo(nil)),
 			Subcommands: []*cli.Command{
 				{
 					Name: "php",

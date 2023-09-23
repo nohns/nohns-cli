@@ -65,7 +65,7 @@ func main() {
 				Name:        "nginx",
 				Aliases:     []string{"i"},
 				Usage:       "Run nginx related tasks",
-				Subcommands: subcmd.NginxSubcommands(nvf),
+				Subcommands: subcmd.Nginx(nvf),
 			},
 		},
 	}
