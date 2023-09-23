@@ -181,7 +181,7 @@ type nginxVhostConf struct {
 func (nvf *nginxVhostFactory) createHost(conf *nginxVhostConf) error {
 	// Open vhost file for writing template
 	p := filepath.Join(nginxVhostAvailableDir, conf.Hostname)
-	_, err := os.OpenFile(p, os.O_WRONLY, 0644)
+	f, err := os.OpenFile(p, os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("could not open %s for writing: %s", p, err)
 	}
@@ -193,7 +193,7 @@ func (nvf *nginxVhostFactory) createHost(conf *nginxVhostConf) error {
 	}
 
 	// Render template with config and write to file
-	if err := t.Execute(os.Stdout, conf); err != nil {
+	if err := t.Execute(f, conf); err != nil {
 		return fmt.Errorf("could not write nginx vhost template to file: %s", err)
 	}
 
