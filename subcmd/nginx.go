@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -24,6 +25,7 @@ const (
 	nginxPhpFlagAlias     = "alias"
 	nginxPhpFlagHandle404 = "handle-404"
 	nginxPhpFlagDir       = "dir"
+	nginxWWWDir           = "/var/www"
 )
 
 func Nginx(nvf *nginxVhostFactory) []*cli.Command {
@@ -57,9 +59,9 @@ func Nginx(nvf *nginxVhostFactory) []*cli.Command {
 						hostname := c.Args().Get(0)
 
 						// If no directory is specified, use the hostname as the directory
-						wwwDir := hostname
+						rootDir := hostname
 						if c.IsSet(c.String(nginxPhpFlagDir)) {
-							wwwDir = c.String(nginxPhpFlagDir)
+							rootDir = c.String(nginxPhpFlagDir)
 						}
 
 						// Create nginx PHP vhost on disk
@@ -67,10 +69,33 @@ func Nginx(nvf *nginxVhostFactory) []*cli.Command {
 							Hostname:    hostname,
 							Handle404:   c.Bool(nginxPhpFlagHandle404),
 							HostAliases: strings.Join(c.StringSlice(nginxPhpFlagAlias), " "),
-							RootDir:     wwwDir,
+							RootDir:     rootDir,
 						})
 						if err != nil {
 							return fmt.Errorf("could not create PHP nginx vhost: %v", err)
+						}
+
+						// Create directory if it doesn't exist
+						wwwfp := filepath.Join(nginxWWWDir, rootDir)
+						if err := os.Mkdir(wwwfp, 0755); err != nil && !errors.Is(err, os.ErrExist) {
+							return fmt.Errorf("could not create www root directory %s: %s", wwwfp, err)
+						}
+
+						// Set www directory permissions
+						if err := os.Chmod(wwwfp, 0755); err != nil {
+							return fmt.Errorf("could not set permissions on www root directory %s: %s", wwwfp, err)
+						}
+						// Set www directory owner
+						uid, err := strconv.Atoi(os.Getenv("SUDO_UID"))
+						if err != nil {
+							return fmt.Errorf("could not get SUDO_UID: %s", err)
+						}
+						gid, err := strconv.Atoi(os.Getenv("SUDO_GID"))
+						if err != nil {
+							return fmt.Errorf("could not get SUDO_GID: %s", err)
+						}
+						if err := os.Chown(wwwfp, uid, gid); err != nil {
+							return fmt.Errorf("could not set owner '%s' on www root directory %s: %s", os.Getenv("SUDO_USER"), wwwfp, err)
 						}
 
 						// Ask user if they want to enable the vhost
