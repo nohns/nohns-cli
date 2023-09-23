@@ -15,4 +15,4 @@ Some commands are meant to only be run on Linux while some are cross platform. Y
 
 ## Secrets
 
-A .nohns directory will be created at the users directory which will be used to store secrets
+A .nohns directory will be created at the users directory which will be used to store secrets. These are in plain text
