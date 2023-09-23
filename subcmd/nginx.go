@@ -52,80 +52,84 @@ func Nginx(nvf *nginxVhostFactory) []*cli.Command {
 							Usage: "The directory to serve",
 						},
 					},
-					Action: func(c *cli.Context) error {
-						if c.Args().Len() < 1 {
-							return fmt.Errorf("expected 1 arguments: [hostname]")
-						}
-						hostname := c.Args().Get(0)
-
-						// If no directory is specified, use the hostname as the directory
-						rootDir := filepath.Join(nginxWWWDir, hostname)
-						if c.IsSet(c.String(nginxPhpFlagDir)) {
-							rootDir = c.String(nginxPhpFlagDir)
-						}
-
-						// Create nginx PHP vhost on disk
-						err := nvf.createPHPHost(&nginxVhostConf{
-							Hostname:    hostname,
-							Handle404:   c.Bool(nginxPhpFlagHandle404),
-							HostAliases: strings.Join(c.StringSlice(nginxPhpFlagAlias), " "),
-							RootDir:     rootDir,
-						})
-						if err != nil {
-							return fmt.Errorf("could not create PHP nginx vhost: %v", err)
-						}
-
-						// Create directory if it doesn't exist
-						if err := os.Mkdir(rootDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
-							return fmt.Errorf("could not create www root directory %s: %s", rootDir, err)
-						}
-						// Set www directory permissions
-						if err := os.Chmod(rootDir, 0755); err != nil {
-							return fmt.Errorf("could not set permissions on www root directory %s: %s", rootDir, err)
-						}
-						// Set www directory owner
-						uid, err := strconv.Atoi(os.Getenv("SUDO_UID"))
-						if err != nil {
-							return fmt.Errorf("could not get SUDO_UID: %s", err)
-						}
-						gid, err := strconv.Atoi(os.Getenv("SUDO_GID"))
-						if err != nil {
-							return fmt.Errorf("could not get SUDO_GID: %s", err)
-						}
-						if err := os.Chown(rootDir, uid, gid); err != nil {
-							return fmt.Errorf("could not set owner '%s' on www root directory %s: %s", os.Getenv("SUDO_USER"), rootDir, err)
-						}
-
-						// Ask user if they want to enable the vhost
-						prompt := promptui.Prompt{
-							Label:     "Do you want to enable this vhost?",
-							IsConfirm: true,
-						}
-						if _, err = prompt.Run(); errors.Is(err, promptui.ErrAbort) {
-							return nil
-						}
-
-						// Make available by symlinking to sites-enabled
-						availablefp := filepath.Join(nginxVhostAvailableDir, hostname)
-						enablefp := filepath.Join(nginxVhostEnabledDir, hostname)
-						if err := os.Symlink(availablefp, enablefp); err != nil && !errors.Is(err, os.ErrExist) {
-							return fmt.Errorf("could not enable vhost: %s", err)
-						}
-						fmt.Printf("added symbolic link for vhost to sites-enabled.\n")
-
-						// Reload nginx if on linux
-						if runtime.GOOS != "linux" {
-							return fmt.Errorf("nginx reload only supported on linux (with systemctl)")
-						}
-						if err := exec.Command("systemctl", "nginx", "reload").Run(); err != nil {
-							return fmt.Errorf("could not reload systemd nginx: %s", err)
-						}
-
-						return nil
-					},
+					Action: ActionNginxVhostPHP(nvf),
 				},
 			},
 		},
+	}
+}
+
+func ActionNginxVhostPHP(nvf *nginxVhostFactory) cli.ActionFunc {
+	return func(c *cli.Context) error {
+		if c.Args().Len() < 1 {
+			return fmt.Errorf("expected 1 arguments: [hostname]")
+		}
+		hostname := c.Args().Get(0)
+
+		// If no directory is specified, use the hostname as the directory
+		rootDir := filepath.Join(nginxWWWDir, hostname)
+		if c.IsSet(c.String(nginxPhpFlagDir)) {
+			rootDir = c.String(nginxPhpFlagDir)
+		}
+
+		// Create nginx PHP vhost on disk
+		err := nvf.createPHPHost(&nginxVhostConf{
+			Hostname:    hostname,
+			Handle404:   c.Bool(nginxPhpFlagHandle404),
+			HostAliases: strings.Join(c.StringSlice(nginxPhpFlagAlias), " "),
+			RootDir:     rootDir,
+		})
+		if err != nil {
+			return fmt.Errorf("could not create PHP nginx vhost: %v", err)
+		}
+
+		// Create directory if it doesn't exist
+		if err := os.Mkdir(rootDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("could not create www root directory %s: %s", rootDir, err)
+		}
+		// Set www directory permissions
+		if err := os.Chmod(rootDir, 0755); err != nil {
+			return fmt.Errorf("could not set permissions on www root directory %s: %s", rootDir, err)
+		}
+		// Set www directory owner
+		uid, err := strconv.Atoi(os.Getenv("SUDO_UID"))
+		if err != nil {
+			return fmt.Errorf("could not get SUDO_UID: %s", err)
+		}
+		gid, err := strconv.Atoi(os.Getenv("SUDO_GID"))
+		if err != nil {
+			return fmt.Errorf("could not get SUDO_GID: %s", err)
+		}
+		if err := os.Chown(rootDir, uid, gid); err != nil {
+			return fmt.Errorf("could not set owner '%s' on www root directory %s: %s", os.Getenv("SUDO_USER"), rootDir, err)
+		}
+
+		// Ask user if they want to enable the vhost
+		prompt := promptui.Prompt{
+			Label:     "Do you want to enable this vhost?",
+			IsConfirm: true,
+		}
+		if _, err = prompt.Run(); errors.Is(err, promptui.ErrAbort) {
+			return nil
+		}
+
+		// Make available by symlinking to sites-enabled
+		availablefp := filepath.Join(nginxVhostAvailableDir, hostname)
+		enablefp := filepath.Join(nginxVhostEnabledDir, hostname)
+		if err := os.Symlink(availablefp, enablefp); err != nil && !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("could not enable vhost: %s", err)
+		}
+		fmt.Printf("added symbolic link for vhost to sites-enabled.\n")
+
+		// Reload nginx if on linux
+		if runtime.GOOS != "linux" {
+			return fmt.Errorf("nginx reload only supported on linux (with systemctl)")
+		}
+		if err := exec.Command("systemctl", "nginx", "reload").Run(); err != nil {
+			return fmt.Errorf("could not reload systemd nginx: %s", err)
+		}
+
+		return nil
 	}
 }
 
