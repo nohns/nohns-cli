@@ -125,7 +125,7 @@ func ActionNginxVhostPHP(nvf *nginxVhostFactory) cli.ActionFunc {
 		if runtime.GOOS != "linux" {
 			return fmt.Errorf("nginx reload only supported on linux (with systemctl)")
 		}
-		if err := exec.Command("systemctl", "nginx", "reload").Run(); err != nil {
+		if err := exec.Command("systemctl", "reload", "nginx").Run(); err != nil {
 			return fmt.Errorf("could not reload systemd nginx: %s", err)
 		}
 
