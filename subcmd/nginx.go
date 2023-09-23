@@ -91,7 +91,7 @@ func ActionNginxVhostPHP(nvf *nginxVhostFactory) cli.ActionFunc {
 		if err := os.Chmod(rootDir, 0755); err != nil {
 			return fmt.Errorf("could not set permissions on www root directory %s: %s", rootDir, err)
 		}
-		// Set www directory owner
+		// Set www directory owner to current user who ran the command
 		uid, err := strconv.Atoi(os.Getenv("SUDO_UID"))
 		if err != nil {
 			return fmt.Errorf("could not get SUDO_UID: %s", err)
