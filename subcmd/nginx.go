@@ -180,11 +180,11 @@ type nginxVhostConf struct {
 
 func (nvf *nginxVhostFactory) createHost(conf *nginxVhostConf) error {
 	// Open vhost file for writing template
-	/*p := filepath.Join(nginxVhostAvailableDir, conf.hostname)
+	p := filepath.Join(nginxVhostAvailableDir, conf.Hostname)
 	_, err := os.OpenFile(p, os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("could not open %s for writing: %s", p, err)
-	}*/
+	}
 
 	// Parse vhost template
 	t, err := template.New("nginxVhost").Parse(nginxVhostTemplate)
